@@ -7,13 +7,13 @@ public class LRUcacheTest {
     public static void main(String[] args){
 //        testDelete();//模拟秒杀
 //        testGetPerformance();//get性能测试
-//        testPutPerformance();//put性能测试
+        testPutPerformance();//put性能测试
 //        testGetPut();//LRU缓存联合测试
 //        testFistTail();//链表并发插入删除测试
 //        testRemoveTail();//链表并发删除测试
 
 //        testPutUniq();
-        testPutOver();
+//        testPutOver();
 //        testGet();
 
     }
@@ -48,7 +48,7 @@ public class LRUcacheTest {
         LRUcache<Integer, Integer> link = new LRUcache<>(100);
         for(int i=0;i<100;i++)
             link.put(i,i);
-        int n=5000;//线程数
+        int n=20000;//线程数
         int kk=5000000/n;
         //测试建立5000线程时间
         long t1 = System.nanoTime();
@@ -89,7 +89,7 @@ public class LRUcacheTest {
         System.out.println("put性能：没有get的3倍说明map的putIfAbsent分段锁性能比原生cas弱");
         LRUcache<Integer, Integer> link = new LRUcache<>(100);
         //测试建立5000线程时间
-        int n=5000;
+        int n=20000;
         int kk=5000000/n;
         long t1 = System.nanoTime();
         for (int i = 0; i < n; i++) {
@@ -139,8 +139,9 @@ public class LRUcacheTest {
             int kk=i*1000;
             new Thread(() -> {
                 for (int j = 0; j < nRequest; j++) {
-                    int k = ThreadLocalRandom.current().nextInt();
-                    link.get(k);
+                    int k = kk+j;
+                    if(link.get(k)!=null)
+                        link.put(k,k);
                     data[cnt.incrementAndGet()-1]=k;
                 }
             }).start();
@@ -153,7 +154,7 @@ public class LRUcacheTest {
             }).start();
             new Thread(() -> {
                 for (int j = 0; j < nRequest; j++) {
-                    int k = (kk+j)%100;
+                    int k =  kk+ThreadLocalRandom.current().nextInt(nRequest);
                     link.put(k,k);
                     data[cnt.incrementAndGet()-1]=k;
                 }
@@ -172,8 +173,19 @@ public class LRUcacheTest {
         System.out.println("---------the final map: id link last request--------unique last 100 request: "+set.size());
 
         for(int i=0;i<link.size();i++) {
-            int tmp = link.getByIndex(i);
-            System.out.println("link id " + i + ",value=" + tmp + ",last request= " + data[data.length - 1 - i] + " " + (tmp == data[data.length - 1 - i]));
+            Integer tmp = link.getByIndex(i);
+            tmp = tmp==null?-1:tmp;
+            int j=0;
+            int tmpd=data[data.length-1-i];
+            for(;j<link.size();j++) {
+                Integer tmpl = link.getByIndex(j);
+                tmpl = tmpl==null?-1:tmpl;
+                if (tmpd == tmpl + 0)
+                    break;
+            }
+            System.out.println("link id " + i + ",value=" + tmp + ",last request= " + data[data.length - 1 - i] + " "
+                    + (tmp == data[data.length - 1 - i])
+                    + " "+j);
         }
         System.out.println(link);
     }

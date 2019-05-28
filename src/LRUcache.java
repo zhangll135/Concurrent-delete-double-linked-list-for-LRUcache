@@ -49,7 +49,7 @@ class LRUcache<K,V> {
             return old.value;
         }
         //old超过10秒未移除，直接添加该节点到头部
-        if(System.currentTimeMillis()-old.helper>10000&&(old.casDelete(2,3)||old.casDelete(1,3)))
+        if(System.currentTimeMillis()-old.helper>100000&&(old.casDelete(2,3)||old.casDelete(1,3)))
             removeNode(map.put(key,addFirst(key,old.value)));
         return old.value;
     }
